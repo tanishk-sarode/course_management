@@ -38,11 +38,11 @@ class CourseResponse(CourseBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 # ---------- List ----------
 class CourseListResponse(BaseModel):
     courses: list[CourseResponse]
     total: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True

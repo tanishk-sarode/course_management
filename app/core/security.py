@@ -1,19 +1,12 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-import jwt 
-from passlib.context import CryptContext
-from app.core.config import Settings
-from app.schemas.auth import TokenPayload
+import jwt
+import bcrypt
+from app.core.config import settings
+import logging
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# JWT Configuration
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-REFRESH_TOKEN_EXPIRE_DAYS = 7
-
-settings = Settings()
+# Setup logging
+logger = logging.getLogger(__name__)
 
 
 # ---------- PASSWORD HASHING ----------
@@ -28,7 +21,11 @@ def hash_password(password: str) -> str:
     Returns:
         Hashed password string
     """
-    return pwd_context.hash(password)
+    # Convert password to bytes and hash
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -42,7 +39,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True if password matches, False otherwise
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    # Convert both to bytes for comparison
+    password_bytes = plain_password.encode('utf-8')
+    hashed_bytes = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(password_bytes, hashed_bytes)
 
 
 # ---------- JWT TOKEN MANAGEMENT ----------
@@ -60,17 +60,20 @@ def create_access_token(user_id: int, role: str, expires_delta: Optional[timedel
         Tuple of (token_string, expires_in_seconds)
     """
     if expires_delta is None:
-        expires_delta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    expire = datetime.now(timezone.utc) + expires_delta
+    # Use current UTC time
+    now = datetime.now(timezone.utc)
+    expire = now + expires_delta
+    
     to_encode = {
-        "sub": user_id,
+        "sub": str(user_id),  # JWT spec requires sub to be a string
         "role": role,
         "exp": expire,
-        "iat": datetime.now(timezone.utc)
+        "iat": now
     }
     
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     expires_in = int(expires_delta.total_seconds())
     
     return encoded_jwt, expires_in
@@ -86,20 +89,22 @@ def create_refresh_token(user_id: int) -> str:
     Returns:
         Refresh token string
     """
-    expires_delta = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    expire = datetime.now(timezone.utc) + expires_delta
+    expires_delta = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    now = datetime.now(timezone.utc)
+    expire = now + expires_delta
+    
     to_encode = {
-        "sub": user_id,
+        "sub": str(user_id),  # JWT spec requires sub to be a string
         "type": "refresh",
         "exp": expire,
-        "iat": datetime.now(timezone.utc)
+        "iat": now
     }
     
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 
-def decode_token(token: str) -> Optional[TokenPayload]:
+def decode_token(token: str) -> Optional[dict]:
     """
     Decode and validate a JWT token.
     
@@ -107,16 +112,19 @@ def decode_token(token: str) -> Optional[TokenPayload]:
         token: JWT token string to decode
         
     Returns:
-        Token payload if valid, None if invalid or expired
+        Token payload dict if valid, None if invalid or expired
     """
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        return TokenPayload(**payload)
-    except jwt.ExpiredSignatureError:
-        print("Token has expired")
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError as e:
+        logger.error(f"Token has expired: {e}")
         return None
-    except jwt.InvalidTokenError:
-        print("Invalid token")
+    except jwt.InvalidTokenError as e:
+        logger.error(f"Invalid token: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error decoding token: {e}")
         return None
 
 

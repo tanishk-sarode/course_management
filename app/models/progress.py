@@ -13,11 +13,10 @@ class Progress(Base):
     last_accessed = Column(DateTime(timezone=True), server_default=func.now())
 
     enrollment = relationship("Enrollment")
+    
+    __table_args__ = (
+        CheckConstraint('completion_percentage >= 0.0 AND completion_percentage <= 100.0', name='chk_completion_percentage_range'),
+    )
 
     def __repr__(self):
         return f"<Progress(id={self.id}, enrollment_id={self.enrollment_id}, completion_percentage={self.completion_percentage})>"
-    
-    def __table_args__(self):
-        return (
-            CheckConstraint('completion_percentage >= 0.0 AND completion_percentage <= 100.0', name='chk_completion_percentage_range'),
-        )

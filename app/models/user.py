@@ -27,7 +27,6 @@ class User(Base):
     courses = relationship("Course", back_populates="instructor")
     enrollments = relationship("Enrollment", back_populates="student")
     reviews = relationship("Review", back_populates="student")
-    payments = relationship("Payment", back_populates="student")
 
     @property
     def full_name(self) -> str:
