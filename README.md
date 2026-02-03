@@ -42,42 +42,6 @@ The API will be available at `http://localhost:8000`
 
 Interactive API documentation (Swagger UI) is available at `http://localhost:8000/`
 
-## API Endpoints
-
-### Authentication (`/auth`)
-- `POST /auth/register` - Register a new user (student or instructor)
-- `POST /auth/login` - Login and receive JWT tokens
-
-### Users (`/users`)
-- `GET /users/me` - Get current user profile
-- `PUT /users/me` - Update current user profile
-- `GET /users/` - List all users (with optional role filter)
-- `GET /users/{user_id}` - Get user by ID
-- `GET /users/instructors/` - List all instructors
-- `GET /users/students/` - List all students
-
-### Courses (`/courses`)
-- `POST /courses/` - Create a new course (instructors only)
-- `GET /courses/` - List all courses (with filters: category, instructor_id, is_published)
-- `GET /courses/{course_id}` - Get course by ID
-- `PUT /courses/{course_id}` - Update course (course instructor only)
-- `DELETE /courses/{course_id}` - Delete course (course instructor only)
-- `GET /courses/instructor/{instructor_id}` - Get courses by instructor
-- `GET /courses/category/{category}` - Get courses by category
-
-### Enrollments (`/enrollments`)
-- `POST /enrollments/` - Enroll in a course (students only)
-- `GET /enrollments/my-enrollments` - Get current student's enrollments
-- `GET /enrollments/course/{course_id}` - Get enrollments for a course (instructors only)
-- `PUT /enrollments/{enrollment_id}` - Update enrollment status
-- `DELETE /enrollments/{enrollment_id}` - Unenroll from course (soft delete)
-- `GET /enrollments/student/{student_id}` - Get student's enrollment history
-
-### Progress (`/progress`)
-- `GET /progress/my-progress` - Get current student's progress (students only)
-- `GET /progress/enrollment/{enrollment_id}` - Get progress for specific enrollment
-- `PUT /progress/enrollment/{enrollment_id}` - Update progress (students only)
-- `GET /progress/course/{course_id}` - Get progress for all enrollments in course (instructors only)
 
 ## Data Models
 
@@ -124,12 +88,6 @@ Interactive API documentation (Swagger UI) is available at `http://localhost:800
 - JWT tokens are used for authentication
 - Role-based access control ensures proper authorization
 - Tokens expire after 30 minutes (configurable)
-
-## Database
-
-The application uses SQLite by default. The database file (`app.db`) is created automatically when the application starts.
-
-To modify the database URL, update the `database_url` in the configuration file or set the `DATABASE_URL` environment variable.
 
 ## Configuration
 
